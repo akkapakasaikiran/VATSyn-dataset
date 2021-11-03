@@ -9,7 +9,7 @@ from gtts import gTTS
 DIR = Enum('DIR', 'right left up down clock anticlock bigger smaller')
 ACTION = Enum('ACTION', 'shift rotate roll jump grow circle')
 SPEED = Enum('SPEED', 'slow fast')
-SHAPE = Enum('SHAPE', 'triangle circle')
+SHAPE = Enum('SHAPE', 'rectangle triangle circle')
 FGCOLOR = Enum('FGCOLOR', 'red magenta orange brown green cyan blue black')
 # FGCOLOR = Enum('FGCOLORS', 'red blue')
 BGCOLOR = Enum('BGCOLOR', 'white pink beige aquamarine yellow')
@@ -139,3 +139,18 @@ def circle_sampler():
 	rs = np.arange(min_r, max_r, 0.05)
 	r = choice(rs) 	
 	return [x, y, r]
+
+
+
+def rectangle_sampler():
+	""" Return a rectangle (x0, y0, w, h, theta). """
+	xs = np.arange(0.1, 0.75, 0.05) 
+	ys = np.arange(0.1, 0.75, 0.05) 
+	x0, y0 = choice(xs), choice(ys)
+
+	ws = np.arange(0.2, 9.5 - x0, 0.05)
+	hs = np.arange(0.2, 9.5 - y0, 0.05)
+	w, h = choice(ws), choice(hs)
+	theta = 0.
+
+	return [x0, y0, w, h, theta]

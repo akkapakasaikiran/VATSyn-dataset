@@ -25,11 +25,17 @@ for id, data in tqdm(metadata['content'].items()):
 	dir = DIR[data['dir']]
 
 	if shape == SHAPE.circle:
+		# continue
 		s = Circle(points=data['points'], fgcolor=fgcolor, 
 				bgcolor=bgcolor, action=action, dir=dir, 
 				speed=speed, id=id, data_path=args.data_path)
 	elif shape == SHAPE.triangle:
+		# continue
 		s = Triangle(points=data['points'], fgcolor=fgcolor, 
+				bgcolor=bgcolor, action=action, dir=dir, 
+				speed=speed, id=id, data_path=args.data_path)
+	elif shape == SHAPE.rectangle:
+		s = Rectangle(points=data['points'], fgcolor=fgcolor, 
 				bgcolor=bgcolor, action=action, dir=dir, 
 				speed=speed, id=id, data_path=args.data_path)
 	else: perror(f'main.py invalid shape: {shape}')

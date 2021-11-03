@@ -26,13 +26,15 @@ for shape, fgcolor, bgcolor, speed in product(SHAPE, FGCOLOR, BGCOLOR, SPEED):
 	""" 2*8*5*2 = 160 """
 	if shape == SHAPE.triangle: points = triangle_sampler()
 	elif shape == SHAPE.circle: points = circle_sampler()
+	elif shape == SHAPE.rectangle: points = rectangle_sampler()
 	else: perror(f'gen metadata invalid shape: {shape}')
 	
 	""" 160*(2+4) = 960 """
 	actions = []
 	if shape == SHAPE.triangle: actions = [ACTION.rotate, ACTION.shift]
 	elif shape == SHAPE.circle: actions = [ACTION.shift, ACTION.grow]
-	
+	elif shape == SHAPE.rectangle: actions = [ACTION.shift]
+
 	for action in actions:
 		if action == ACTION.shift: dirs = [DIR.right, DIR.left, DIR.up, DIR.down]		
 		elif action == ACTION.rotate: dirs = [DIR.clock, DIR.anticlock]

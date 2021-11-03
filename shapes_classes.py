@@ -124,3 +124,39 @@ class Circle(Shape):
 		elif self.action == ACTION.grow: super().gen_video(grow, duration)
 		else: perror(f'gen video circle invalid action: {action}')	
 
+class Rectangle(Shape):
+	def __init__(self, points, fgcolor, bgcolor, id, action, speed, dir, data_path):
+		super().__init__(fgcolor, bgcolor, id, action, speed, dir, data_path)
+		x0, y0, w, h, theta = points
+		self.patch = patches.Rectangle((x0, y0), w, h, theta, facecolor=fgcolor.name) 
+
+	def gen_sentence(self):
+		return super().gen_sentence(SHAPE.rectangle)
+
+	def gen_audio(self):
+		return super().gen_audio()
+
+	def gen_video(self, duration):
+		def shift(i):
+			if i == 0: self.ax.add_patch(self.patch)
+			(x, y) = self.patch.get_xy()
+
+			if self.dir == DIR.right: x += self.speed
+			elif self.dir == DIR.left: x -= self.speed
+			elif self.dir == DIR.up: y += self.speed
+			elif self.dir == DIR.down: y -= self.speed 
+			else: perror(f'triangle shift func invalid dir: {self.dir}')
+			self.patch.set_xy((x, y))
+			return [self.patch]
+
+		def rotate(i):
+			perror('rotate doesnt make sense for a circle')
+			
+		def grow(i):
+			if i == 0: self.ax.add_patch(self.patch)
+			self.patch.set_radius(self.patch.get_radius() + self.speed)
+			return [self.patch]
+		
+		if self.action == ACTION.shift: super().gen_video(shift, duration)
+		elif self.action == ACTION.grow: super().gen_video(shift, duration)
+		else: perror(f'gen video circle invalid action: {action}')	
