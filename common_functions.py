@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.random import choice
+from numpy.random import choice, uniform
 import json
 from enum import Enum
 import os
@@ -9,11 +9,14 @@ from gtts import gTTS
 DIR = Enum('DIR', 'right left up down clock anticlock bigger smaller')
 ACTION = Enum('ACTION', 'shift rotate roll jump grow circle')
 SPEED = Enum('SPEED', 'slow fast')
-SHAPE = Enum('SHAPE', 'rectangle triangle circle')
+SHAPE = Enum('SHAPE', 'triangle square pentagon hexagon circle ellipse')
 FGCOLOR = Enum('FGCOLOR', 'red magenta orange brown green cyan blue black')
 # FGCOLOR = Enum('FGCOLORS', 'red blue')
 BGCOLOR = Enum('BGCOLOR', 'white pink beige aquamarine yellow')
 # BGCOLOR = Enum('BGCOLORS', 'white pink')
+
+regular_polygons = [SHAPE.triangle, SHAPE.square, SHAPE.pentagon, SHAPE.hexagon]
+circular_shapes = [SHAPE.circle, SHAPE.ellipse]
 
 def perror(msg):
 	""" Print error and exit. """
@@ -72,54 +75,6 @@ def save_text(path, ids, texts):
 		json.dump(data, wf, indent=2)
 
 
-def rotateee(pt1, pt2, angle, dir=DIR.anticlock):
-	""" Rotate pt1 about pt2 and return rotated point. """
-	ox, oy = pt2 	# "origin"
-	dx, dy = pt1[0] - ox, pt1[1] - oy
-	if dir == DIR.clock: angle = - angle 
-	c, s = math.cos(angle), math.sin(angle)
-
-	nx = ox + dx * c - dy * s
-	ny = oy + dx * s + dy * c 
-
-	return nx, ny
-
-
-# 2 | 1
-# -------
-# 3 | 4
-def sample_point(quadrant_num):
-	"""	Return a point (x,y) from a specified quadrant in the unit grid. """
-	if quadrant_num not in [1, 2, 3, 4]:
-		print("error: quadrant number should be between 1 and 4")
-		exit()
-
-	if quadrant_num in [1, 4]: 
-		xs = np.arange(0.6, 1.0, 0.1)
-	else:
-		xs = np.arange(0.1, 0.5, 0.1)
-
-	if quadrant_num in [1, 2]:
-		ys = np.arange(0.6, 1.0, 0.1)
-	else:
-		ys = np.arange(0.1, 0.5, 0.1)
-
-	return choice(xs), choice(ys)
-
-
-def triangle_sampler():
-	""" Return three points, all lying in different quadrants. 
-
-	Return a triangle [(x1,y1), (x2,y2), (x3,y3)] in the unit grid 
-	such that no two points lie in the same quadrant (least count = .1).
-	Number of unique triangles possible = 4*16*16*16 = 16384
-	"""
-
-	quadrants = choice(range(1, 5), 3, replace=False) # three quadrants
-	pts = [sample_point(quad) for quad in quadrants]
-	return pts
-
-
 def circle_sampler():
 	""" Return the centre and radius of a circle. 
 
@@ -129,28 +84,37 @@ def circle_sampler():
 	~ because possible radii values depend on location of centres
 	"""
 
-	xs = np.arange(0.3, 0.7, 0.05)  
-	ys = np.arange(0.3, 0.7, 0.05) 
+	xs = np.arange(0.3, 0.75, 0.05)  
+	ys = np.arange(0.3, 0.75, 0.05) 
 	x, y = choice(xs), choice(ys)
 
-	# between 0.25 and 0.45 
-	max_r = min(min(x, 1.0 - x), min(y, 1.0 - y)) - .05 
-	min_r = 0.2
+	# max_r is between 0.2 and 0.5 
+	min_r, max_r = 0.2, min(min(x, 1.0 - x), min(y, 1.0 - y)) 
 	rs = np.arange(min_r, max_r, 0.05)
 	r = choice(rs) 	
 	return [x, y, r]
 
 
+def regular_polygon_sampler():
+	""" Return a regular polygon (its centre, "radius", and orientation). """
+	x, y, r = circle_sampler()
+	theta = uniform(0, 2 * math.pi) # in radians
 
-def rectangle_sampler():
-	""" Return a rectangle (x0, y0, w, h, theta). """
-	xs = np.arange(0.1, 0.75, 0.05) 
-	ys = np.arange(0.1, 0.75, 0.05) 
-	x0, y0 = choice(xs), choice(ys)
+	return [x, y, r, theta]
 
-	ws = np.arange(0.2, 9.5 - x0, 0.05)
-	hs = np.arange(0.2, 9.5 - y0, 0.05)
-	w, h = choice(ws), choice(hs)
-	theta = 0.
 
-	return [x0, y0, w, h, theta]
+def ellipse_sampler(circle=False):
+	x, y, a = circle_sampler()
+	b = uniform(a/3, 2*a/3)
+	theta = uniform(0, 360) # somehow this is in degrees in plt
+
+	if circle: return [x, y, a, a, 0]
+	else: return [x, y, a, b, theta]
+
+
+def get_numpts(shape):
+	if shape == SHAPE.triangle: return 3
+	elif shape == SHAPE.square: return 4
+	elif shape == SHAPE.pentagon: return 5
+	elif shape == SHAPE.hexagon: return 6
+	else: perror(f'get numpts undefined shape: {shape}')

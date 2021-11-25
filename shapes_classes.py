@@ -21,7 +21,7 @@ class Shape:
 		self.data_path = data_path
 
 	def gen_sentence(self, shape):
-		# eg: a blue triangle is moving right on a yellow background 
+		# eg: a blue triangle is moving right slowly on a yellow background 
 		first_article = 'An' if self.fgcolor.name[0] in ['a', 'e', 'i', 'o', 'u'] else 'A'
 		second_article = 'an' if self.bgcolor.name[0] in ['a', 'e', 'i', 'o', 'u'] else 'a'
 		verb = gen_verb(self.action, self.dir)
@@ -49,13 +49,16 @@ class Shape:
 		plt.close(fig)
 
 
-class Triangle(Shape):
-	def __init__(self, points, fgcolor, bgcolor, id, action, speed, dir, data_path):
+class RegularPolygon(Shape):
+	def __init__(self, points, shape, fgcolor, bgcolor, id, action, speed, dir, data_path):
 		super().__init__(fgcolor, bgcolor, id, action, speed, dir, data_path)
-		self.patch = patches.Polygon(points, facecolor=fgcolor.name)
+		cx, cy, r, theta = points
+		self.shape = shape
+		self.patch = patches.RegularPolygon((cx, cy), get_numpts(shape),
+				radius=r, orientation=theta, facecolor=fgcolor.name) 
 
 	def gen_sentence(self):
-		return super().gen_sentence(SHAPE.triangle)
+		return super().gen_sentence(self.shape)
 
 	def gen_audio(self):
 		return super().gen_audio()
@@ -63,39 +66,48 @@ class Triangle(Shape):
 	def gen_video(self, duration):
 		def shift(i):
 			if i == 0: self.ax.add_patch(self.patch)
-			points = self.patch.get_xy()
-			if self.dir == DIR.right: points = [(pt[0] + self.speed, pt[1]) for pt in points] 
-			elif self.dir == DIR.left: points = [(pt[0] - self.speed, pt[1]) for pt in points]
-			elif self.dir == DIR.up: points = [(pt[0], pt[1] + self.speed) for pt in points]
-			elif self.dir == DIR.down: points = [(pt[0], pt[1] - self.speed) for pt in points]
-			else: perror('triangle shift func invalid dir')
-			self.patch.set_xy(points)
+			(x, y) = self.patch.xy
+
+			if self.dir == DIR.right: x += self.speed
+			elif self.dir == DIR.left: x -= self.speed
+			elif self.dir == DIR.up: y += self.speed
+			elif self.dir == DIR.down: y -= self.speed
+			else: perror(f'triangle shift func invalid dir: {self.dir}')
+			self.patch.xy = (x, y)
 			return [self.patch]
 
 		def rotate(i):
-			if i == 0: self.ax.add_patch(self.patch)
-			points = self.patch.get_xy()
-			centroid = tuple(np.mean(np.array(points), axis=0).tolist())
-			new_points = []
-			for (px, py) in points:
-				nx, ny = rotateee((px, py), centroid, self.speed, self.dir)
-				new_points.append([nx, ny])
-			self.patch.set_xy(new_points)
+			if i == 0:
+				self.ax.add_patch(self.patch)
+				if self.dir == DIR.clock: self.speed *= -1
+				
+			self.patch.orientation += self.speed * np.pi
 			return [self.patch]
-
+			
+		def grow(i):
+			if i == 0:
+				self.ax.add_patch(self.patch)
+				if self.dir == DIR.smaller: self.speed *= -1
+			
+			if self.patch.radius >= 0.05:
+				self.patch.radius += self.speed
+			return [self.patch]
+		
 		if self.action == ACTION.shift: super().gen_video(shift, duration)
 		elif self.action == ACTION.rotate: super().gen_video(rotate, duration)
-		else: perror('gen video Triangle invalid action')	
+		elif self.action == ACTION.grow: super().gen_video(grow, duration)
+		else: perror(f'gen video RegularPolygon invalid action: {action}')	
 
 
-class Circle(Shape):
-	def __init__(self, points, fgcolor, bgcolor, id, action, speed, dir, data_path):
+class Ellipse(Shape):
+	def __init__(self, points, shape, fgcolor, bgcolor, id, action, speed, dir, data_path):
 		super().__init__(fgcolor, bgcolor, id, action, speed, dir, data_path)
-		x, y, r = points
-		self.patch = patches.Circle((x, y), r, facecolor=fgcolor.name)
+		x, y, w, h, theta = points
+		self.shape = shape
+		self.patch = patches.Ellipse((x, y), w, h, angle=theta, facecolor=fgcolor.name)
 
 	def gen_sentence(self):
-		return super().gen_sentence(SHAPE.circle)
+		return super().gen_sentence(self.shape)
 
 	def gen_audio(self):
 		return super().gen_audio()
@@ -113,50 +125,28 @@ class Circle(Shape):
 			return [self.patch]
 
 		def rotate(i):
-			perror('rotate doesnt make sense for a circle')
-			
+			if i == 0:
+				self.ax.add_patch(self.patch)
+				if dir == DIR.clock: speed *= -1
+			angle = self.patch.get_angle() 
+			self.patch.set_angle(angle + self.speed * 360)
+			print(self.patch.get_angle())
+			return [self.patch]
+
 		def grow(i):
-			if i == 0: self.ax.add_patch(self.patch)
-			self.patch.set_radius(self.patch.get_radius() + self.speed)
+			if i == 0:
+				self.ax.add_patch(self.patch)
+				if self.dir == DIR.smaller: self.speed *= -1
+
+			w, h = self.patch.get_width(), self.patch.get_height()
+			if min(w, h) >= 0.05:
+				h += (h/w) * self.speed
+				w += self.speed
+				self.patch.set_width(w)
+				self.patch.set_height(h)
 			return [self.patch]
 		
 		if self.action == ACTION.shift: super().gen_video(shift, duration)
+		elif self.action == ACTION.rotate: super().gen_video(rotate, duration)
 		elif self.action == ACTION.grow: super().gen_video(grow, duration)
-		else: perror(f'gen video circle invalid action: {action}')	
-
-class Rectangle(Shape):
-	def __init__(self, points, fgcolor, bgcolor, id, action, speed, dir, data_path):
-		super().__init__(fgcolor, bgcolor, id, action, speed, dir, data_path)
-		x0, y0, w, h, theta = points
-		self.patch = patches.Rectangle((x0, y0), w, h, theta, facecolor=fgcolor.name) 
-
-	def gen_sentence(self):
-		return super().gen_sentence(SHAPE.rectangle)
-
-	def gen_audio(self):
-		return super().gen_audio()
-
-	def gen_video(self, duration):
-		def shift(i):
-			if i == 0: self.ax.add_patch(self.patch)
-			(x, y) = self.patch.get_xy()
-
-			if self.dir == DIR.right: x += self.speed
-			elif self.dir == DIR.left: x -= self.speed
-			elif self.dir == DIR.up: y += self.speed
-			elif self.dir == DIR.down: y -= self.speed 
-			else: perror(f'triangle shift func invalid dir: {self.dir}')
-			self.patch.set_xy((x, y))
-			return [self.patch]
-
-		def rotate(i):
-			perror('rotate doesnt make sense for a circle')
-			
-		def grow(i):
-			if i == 0: self.ax.add_patch(self.patch)
-			self.patch.set_radius(self.patch.get_radius() + self.speed)
-			return [self.patch]
-		
-		if self.action == ACTION.shift: super().gen_video(shift, duration)
-		elif self.action == ACTION.grow: super().gen_video(shift, duration)
-		else: perror(f'gen video circle invalid action: {action}')	
+		else: perror(f'gen video Ellipse invalid action: {action}')

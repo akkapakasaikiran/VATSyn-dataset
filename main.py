@@ -24,25 +24,28 @@ for id, data in tqdm(metadata['content'].items()):
 	speed = SPEED[data['speed']]
 	dir = DIR[data['dir']]
 
-	if shape == SHAPE.circle:
-		# continue
-		s = Circle(points=data['points'], fgcolor=fgcolor, 
-				bgcolor=bgcolor, action=action, dir=dir, 
-				speed=speed, id=id, data_path=args.data_path)
-	elif shape == SHAPE.triangle:
-		# continue
-		s = Triangle(points=data['points'], fgcolor=fgcolor, 
-				bgcolor=bgcolor, action=action, dir=dir, 
-				speed=speed, id=id, data_path=args.data_path)
-	elif shape == SHAPE.rectangle:
-		s = Rectangle(points=data['points'], fgcolor=fgcolor, 
-				bgcolor=bgcolor, action=action, dir=dir, 
-				speed=speed, id=id, data_path=args.data_path)
+	# if action != ACTION.rotate: continue
+
+	if shape in regular_polygons:
+		if shape != SHAPE.triangle: continue
+		s = RegularPolygon(points=data['points'], shape=shape, 
+			fgcolor=fgcolor, bgcolor=bgcolor, action=action, dir=dir, 
+			speed=speed, id=id, data_path=args.data_path)
+
+	elif shape in [SHAPE.circle, SHAPE.ellipse]:
+		# if shape != SHAPE.ellipse: 
+		continue
+		s = Ellipse(points=data['points'], shape=shape, 
+			fgcolor=fgcolor, bgcolor=bgcolor, action=action, dir=dir, 
+			speed=speed, id=id, data_path=args.data_path)
+
+
 	else: perror(f'main.py invalid shape: {shape}')
 
 	s.gen_video(duration=data['duration'])
 	text = s.gen_sentence()
 	texts.append(text)
 	s.gen_audio()
+
 
 save_text(op.join(args.data_path, 'texts.json'), ids, texts)
