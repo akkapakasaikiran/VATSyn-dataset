@@ -14,6 +14,8 @@ FGCOLOR = Enum('FGCOLOR', 'red magenta orange brown green cyan blue black')
 # FGCOLOR = Enum('FGCOLORS', 'red blue')
 BGCOLOR = Enum('BGCOLOR', 'white pink beige aquamarine yellow')
 # BGCOLOR = Enum('BGCOLORS', 'white pink')
+TYPE = Enum('TYPE', 'disjoint overlap subset same')
+ACCENT = Enum('ACCENT', 'au ca ind uk')
 
 regular_polygons = [SHAPE.triangle, SHAPE.square, SHAPE.pentagon, SHAPE.hexagon]
 circular_shapes = [SHAPE.circle, SHAPE.ellipse]
@@ -89,7 +91,7 @@ def circle_sampler():
 	x, y = choice(xs), choice(ys)
 
 	# max_r is between 0.2 and 0.5 
-	min_r, max_r = 0.2, min(min(x, 1.0 - x), min(y, 1.0 - y)) 
+	min_r, max_r = 0.1, min(min(x, 1.0 - x), min(y, 1.0 - y)) 
 	rs = np.arange(min_r, max_r, 0.05)
 	r = choice(rs) 	
 	return [x, y, r]
@@ -118,3 +120,26 @@ def get_numpts(shape):
 	elif shape == SHAPE.pentagon: return 5
 	elif shape == SHAPE.hexagon: return 6
 	else: perror(f'get numpts undefined shape: {shape}')
+
+
+def jump_update(xy, t, speed):
+	""" Model the motion of point xy thrown upwards. """
+
+	g = 0.005 if speed == SPEED.slow else 0.01
+	u = 0.05 if speed == SPEED.slow else 0.05
+
+	# rebound from the ground
+	t = (t-1) % int(2*u/g) + 1
+
+	# s = ut + (1/2)at^2
+	# ds = s(t) - s(t-1) = u - (1/2)g(2t-1)
+	y = xy[1] + u - (1/2) * g * (2*t - 1)
+	return (xy[0], y)
+
+
+def accent_to_args(accent):
+	if accent == ACCENT.au: return {'lang': 'en', 'tld': 'com.au'}
+	if accent == ACCENT.ca: return {'lang': 'en', 'tld': 'ca'}
+	if accent == ACCENT.ind: return {'lang': 'en', 'tld': 'co.in'}
+	if accent == ACCENT.uk: return {'lang': 'en', 'tld': 'co.uk'}
+	

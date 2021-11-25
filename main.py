@@ -15,6 +15,8 @@ texts, ids = [], []
 with open(op.join(args.data_path, 'metadata.json'), 'r') as rf:
 	metadata = json.load(rf)
 
+type = TYPE[metadata['type']] 
+
 for id, data in tqdm(metadata['content'].items()):
 	ids.append(id)
 	shape = SHAPE[data['shape']]
@@ -23,29 +25,20 @@ for id, data in tqdm(metadata['content'].items()):
 	action = ACTION[data['action']]
 	speed = SPEED[data['speed']]
 	dir = DIR[data['dir']]
+	accent = ACCENT[data['accent']]
 
-	# if action != ACTION.rotate: continue
+	params = {'points': data['points'], 'type': type, 'shape': shape, 
+			'fgcolor': fgcolor, 'bgcolor': bgcolor, 'action': action, 'dir': dir, 
+			'speed': speed, 'id': id, 'accent': accent, 'data_path': args.data_path}
 
-	if shape in regular_polygons:
-		if shape != SHAPE.triangle: continue
-		s = RegularPolygon(points=data['points'], shape=shape, 
-			fgcolor=fgcolor, bgcolor=bgcolor, action=action, dir=dir, 
-			speed=speed, id=id, data_path=args.data_path)
-
-	elif shape in [SHAPE.circle, SHAPE.ellipse]:
-		# if shape != SHAPE.ellipse: 
-		continue
-		s = Ellipse(points=data['points'], shape=shape, 
-			fgcolor=fgcolor, bgcolor=bgcolor, action=action, dir=dir, 
-			speed=speed, id=id, data_path=args.data_path)
-
-
+	if shape in regular_polygons: s = RegularPolygon(**params)
+	elif shape in circular_shapes: s = Ellipse(**params)
 	else: perror(f'main.py invalid shape: {shape}')
 
 	s.gen_video(duration=data['duration'])
-	text = s.gen_sentence()
+	text = s.gen_sentences()
 	texts.append(text)
 	s.gen_audio()
-
+	print(id, ':', text)
 
 save_text(op.join(args.data_path, 'texts.json'), ids, texts)
