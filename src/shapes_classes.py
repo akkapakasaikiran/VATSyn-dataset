@@ -61,12 +61,19 @@ class Shape:
 
 		return self.text_sentence
 
-	def gen_audio(self):
+	def gen_audio(self, filename):
 		if self.audio_sentence is None: self.gen_sentences()
-		obj = gTTS(self.audio_sentence, **accent_to_args(self.accent))
-		obj.save(op.join(self.data_path, 'audio', f'{self.id}.mp3'))
-	
-	def gen_video(self, func, duration):
+		try:
+			obj = gTTS(self.audio_sentence, **accent_to_args(self.accent))
+			obj.save(filename)
+			return True
+		except Exception as e:
+			print(e)
+			if os.path.isfile(filename):
+				os.remove(filename)
+			return False
+
+	def gen_video(self, filename, func, duration):
 		fig = plt.figure(figsize=(4,4), dpi=64)
 		self.ax = fig.gca()
 		plt.axis('off')
@@ -75,8 +82,9 @@ class Shape:
 		fps = 10; 
 		anim = animation.FuncAnimation(fig, func, frames=int(duration*fps), blit=True)
 		writer = animation.FFMpegWriter(fps=fps, bitrate=1800)
-		anim.save(op.join(self.data_path, 'video', f'{self.id}.mp4'), writer=writer)
+		anim.save(filename, writer=writer)
 		plt.close(fig)
+		return True
 
 
 class RegularPolygon(Shape):
@@ -91,10 +99,10 @@ class RegularPolygon(Shape):
 	def gen_sentences(self):
 		return super().gen_sentences(self.shape)
 
-	def gen_audio(self):
-		return super().gen_audio()
+	def gen_audio(self, filename):
+		return super().gen_audio(filename)
 
-	def gen_video(self, duration):
+	def gen_video(self, filename, duration):
 		def shift(i):
 			if i == 0: self.ax.add_patch(self.patch)
 			(x, y) = self.patch.xy
@@ -129,10 +137,10 @@ class RegularPolygon(Shape):
 			else: self.patch.xy = jump_update(self.patch.xy, i, self.og_speed)
 			return [self.patch]
 		
-		if self.action == ACTION.shift: super().gen_video(shift, duration)
-		elif self.action == ACTION.rotate: super().gen_video(rotate, duration)
-		elif self.action == ACTION.grow: super().gen_video(grow, duration)
-		elif self.action == ACTION.jump: super().gen_video(jump, duration)
+		if self.action == ACTION.shift: super().gen_video(filename, shift, duration)
+		elif self.action == ACTION.rotate: super().gen_video(filename, rotate, duration)
+		elif self.action == ACTION.grow: super().gen_video(filename, grow, duration)
+		elif self.action == ACTION.jump: super().gen_video(filename, jump, duration)
 		else: perror(f'gen video RegularPolygon invalid action: {action}')	
 
 
@@ -147,10 +155,10 @@ class Ellipse(Shape):
 	def gen_sentences(self):
 		return super().gen_sentences(self.shape)
 
-	def gen_audio(self):
-		return super().gen_audio()
+	def gen_audio(self, filename):
+		return super().gen_audio(filename)
 
-	def gen_video(self, duration):
+	def gen_video(self, filename, duration):
 		def shift(i):
 			if i == 0: self.ax.add_patch(self.patch)
 			(cx, cy) = self.patch.get_center()
@@ -191,8 +199,8 @@ class Ellipse(Shape):
 				self.patch.set_center((cx, cy))
 			return [self.patch]
 		
-		if self.action == ACTION.shift: super().gen_video(shift, duration)
-		elif self.action == ACTION.rotate: super().gen_video(rotate, duration)
-		elif self.action == ACTION.grow: super().gen_video(grow, duration)
-		elif self.action == ACTION.jump: super().gen_video(jump, duration)
+		if self.action == ACTION.shift: super().gen_video(filename, shift, duration)
+		elif self.action == ACTION.rotate: super().gen_video(filename, rotate, duration)
+		elif self.action == ACTION.grow: super().gen_video(filename, grow, duration)
+		elif self.action == ACTION.jump: super().gen_video(filename, jump, duration)
 		else: perror(f'gen video Ellipse invalid action: {action}')

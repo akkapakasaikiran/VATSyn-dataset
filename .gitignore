@@ -133,3 +133,5 @@ dmypy.json
 # CUSTOM
 
 data/
+features/
+pickle_files/

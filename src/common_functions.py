@@ -61,20 +61,22 @@ def gen_verb(action, dir=None):
 	else: perror(f'gen verb invalid action: {action}')
 
 
-def setup_dirs(data_path):
-	""" Create audio and video dirs, if they exist, delete old files. """
+def setup_dirs(data_path, remove_old):
+	""" Create dirs and files, deleting old ones if specified. """
+	print(f'SETUP_DIRS: remove_old is set to {remove_old}')
 	for x in ['audio', 'video']:
 		path = os.path.join(data_path, x)
-		if os.path.isdir(path):  
-			for f in os.listdir(path): os.remove(os.path.join(path, f))
-		else: os.makedirs(path)
-
-
-def save_text(path, ids, texts):
-	""" Save ids and sentences into path (json file). """
-	data = dict(zip(ids, texts))
-	with open(path, 'w') as wf:
-		json.dump(data, wf, indent=2)
+		if not os.path.isdir(path):  
+			os.makedirs(path)
+		elif remove_old:
+			for f in os.listdir(path):
+				os.remove(os.path.join(path, f))
+	
+	text_file = os.path.join(data_path, 'texts.csv')
+	if not os.path.isfile(text_file):
+		open(text_file, 'a').close()
+	elif remove_old:
+		os.remove(text_file)
 
 
 def circle_sampler():

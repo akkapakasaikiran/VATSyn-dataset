@@ -1,24 +1,28 @@
 from tqdm import tqdm
 import argparse
 import os.path as op 
+import csv
 
 from shapes_classes import *
 from common_functions import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', '--data_path', type=str, default='./data/')
+parser.add_argument('-r', '--remove_old', action='store_true',
+	help='remove all old audio, video, and text files')
 args = parser.parse_args()
 
-setup_dirs(args.data_path)
-texts, ids = [], []
+setup_dirs(args.data_path, args.remove_old)
 
-with open(op.join(args.data_path, 'metadata.json'), 'r') as rf:
+metadata_file = op.join(args.data_path, 'metadata.json')
+texts_file = op.join(args.data_path, 'texts.csv')
+
+with open(metadata_file, 'r') as rf:
 	metadata = json.load(rf)
 
 type = TYPE[metadata['type']] 
-
+failed_ids = []
 for id, data in tqdm(metadata['content'].items()):
-	ids.append(id)
 	shape = SHAPE[data['shape']]
 	fgcolor = FGCOLOR[data['fgcolor']]
 	bgcolor = BGCOLOR[data['bgcolor']]
@@ -35,10 +39,24 @@ for id, data in tqdm(metadata['content'].items()):
 	elif shape in circular_shapes: s = Ellipse(**params)
 	else: perror(f'main.py invalid shape: {shape}')
 
-	s.gen_video(duration=data['duration'])
+	video_file = os.path.join(args.data_path, 'video', f'{id}.mp4')
+	audio_file = os.path.join(args.data_path, 'audio', f'{id}.mp3')
+	
 	text = s.gen_sentences()
-	texts.append(text)
-	s.gen_audio()
-	print(id, ':', text)
+	save_text = True
+	try:
+		if not os.path.isfile(video_file):
+			v = s.gen_video(video_file, duration=data['duration'])
+			save_text = save_text and v
+		if not os.path.isfile(audio_file):
+			a = s.gen_audio(audio_file)
+			save_text = save_text and a
 
-save_text(op.join(args.data_path, 'texts.json'), ids, texts)
+	except Exception as e:
+		print(e)
+		continue
+		
+	if save_text:
+		with open(texts_file, 'a', newline='') as wf:
+			csv.writer(wf).writerow([id, text])
+
